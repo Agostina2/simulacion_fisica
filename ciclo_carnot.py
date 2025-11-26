@@ -5,12 +5,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-# Constante de los gases
-R = 8.314
+R = 8.314  # Constante de los gases
 
-# FUNCIÓN PRINCIPAL QUE CALCULA Y GENERA EL CICLO
-def generar_ciclo():
-    # Obtener valores de la interfaz
+# Lee entradas de la interfaz
+def leer_entradas():
     try:
         n = float(entry_n.get())
         gamma = float(entry_gamma.get())
@@ -20,30 +18,34 @@ def generar_ciclo():
         V2 = float(entry_V2.get())
 
         if V2 <= V1:
-            resultado_text.delete("1.0", tk.END)
-            resultado_text.insert(tk.END, "Error: V2 debe ser mayor que V1.")
-            return
+            mostrar_error("Error: V2 debe ser mayor que V1.")
+            return None
+
+        return n, gamma, T_hot, T_cold, V1, V2
 
     except ValueError:
-        resultado_text.delete("1.0", tk.END)
-        resultado_text.insert(tk.END, "ERROR: Ingresa valores numéricos válidos.")
-        return
+        mostrar_error("ERROR: Ingresa valores numéricos válidos.")
+        return None
 
-    # Estado 1
+# Mostrar mensaje de error
+def mostrar_error(mensaje):
+    resultado_text.delete("1.0", tk.END)
+    resultado_text.insert(tk.END, mensaje)
+
+# Calcula presiones y volúmenes de cada estado
+def calcular_presiones_volumenes(n, gamma, T_hot, T_cold, V1, V2):
     P1 = n * R * T_hot / V1
     P2 = n * R * T_hot / V2
-
-    # Adiabática 
     V3 = V2 * (T_hot / T_cold) ** (1 / (gamma - 1))
     P3 = n * R * T_cold / V3
-
-    # Isoterma 
     V4 = V1 * (T_hot / T_cold) ** (1 / (gamma - 1))
     P4 = n * R * T_cold / V4
+    return P1, P2, V3, P3, V4, P4
 
+# Calcula trabajo, calor y energía interna
+def calcular_trabajo_Q_dU(n, gamma, T_hot, T_cold, V1, V2, V3, V4):
     Cv = R / (gamma - 1)
 
-    # Cálculos por etapa
     W_12 = n * R * T_hot * log(V2 / V1)
     Q_12 = W_12
     dU_12 = 0
@@ -64,7 +66,18 @@ def generar_ciclo():
     Q_in = Q_12 if Q_12 > 0 else 0
     eficiencia = W_net / Q_in if Q_in != 0 else float("nan")
 
-    # Mostrar resultados
+    return (W_12, Q_12, dU_12,
+            W_23, Q_23, dU_23,
+            W_34, Q_34, dU_34,
+            W_41, Q_41, dU_41,
+            W_net, Q_in, eficiencia)
+
+# Mostar resultados en la interfaz
+def mostrar_resultados(W_12, Q_12, dU_12,
+                        W_23, Q_23, dU_23,
+                        W_34, Q_34, dU_34,
+                        W_41, Q_41, dU_41,
+                        W_net, Q_in, eficiencia):
     resultado_text.delete("1.0", tk.END)
     resultado_text.insert(tk.END, "=== RESULTADOS DEL CICLO DE CARNOT ===\n\n")
     resultado_text.insert(tk.END, f"W 1→2: {W_12:.3f} J\nQ 1→2: {Q_12:.3f} J\nΔU 1→2: {dU_12:.3f} J\n\n")
@@ -76,11 +89,11 @@ def generar_ciclo():
     resultado_text.insert(tk.END, f"Calor absorbido Q_in = {Q_in:.3f} J\n")
     resultado_text.insert(tk.END, f"Rendimiento = {eficiencia:.3f}\n")
 
-    # GRAFICAR EN EL CANVAS DE TKINTER
+# Grafica el ciclo P-V
+def graficar_ciclo(P1, P2, V1, V2, V3, P3, V4, P4, gamma, n, T_hot, T_cold):
     fig.clear()
     ax = fig.add_subplot(111)
 
-    # Curvas
     V_iso1 = np.linspace(V1, V2, 300)
     P_iso1 = n * R * T_hot / V_iso1
 
@@ -105,8 +118,19 @@ def generar_ciclo():
     ax.set_title("Ciclo de Carnot - Diagrama P-V")
     ax.grid(True)
     ax.legend()
-
     canvas.draw()
+
+# Función principal
+def generar_ciclo():
+    entradas = leer_entradas()
+    if entradas is None:
+        return
+
+    n, gamma, T_hot, T_cold, V1, V2 = entradas
+    P1, P2, V3, P3, V4, P4 = calcular_presiones_volumenes(n, gamma, T_hot, T_cold, V1, V2)
+    resultados = calcular_trabajo_Q_dU(n, gamma, T_hot, T_cold, V1, V2, V3, V4)
+    mostrar_resultados(*resultados)
+    graficar_ciclo(P1, P2, V1, V2, V3, P3, V4, P4, gamma, n, T_hot, T_cold)
 
 # INTERFAZ TKINTER
 root = tk.Tk()
@@ -128,32 +152,29 @@ entry_gamma.grid(row=1, column=1)
 
 ttk.Label(frame, text="T_hot (K):").grid(row=2, column=0)
 entry_Th = ttk.Entry(frame)
-entry_Th.insert(0, "600")
+entry_Th.insert(0, "444")
 entry_Th.grid(row=2, column=1)
 
 ttk.Label(frame, text="T_cold (K):").grid(row=3, column=0)
 entry_Tc = ttk.Entry(frame)
-entry_Tc.insert(0, "300")
+entry_Tc.insert(0, "278")
 entry_Tc.grid(row=3, column=1)
 
 ttk.Label(frame, text="V1 (m³):").grid(row=4, column=0)
 entry_V1 = ttk.Entry(frame)
-entry_V1.insert(0, "0.01")
+entry_V1.insert(0, "2.27")
 entry_V1.grid(row=4, column=1)
 
 ttk.Label(frame, text="V2 (m³):").grid(row=5, column=0)
 entry_V2 = ttk.Entry(frame)
-entry_V2.insert(0, "0.04")
+entry_V2.insert(0, "6")
 entry_V2.grid(row=5, column=1)
 
-# Botón
 ttk.Button(frame, text="Generar Ciclo", command=generar_ciclo).grid(row=6, column=0, columnspan=2, pady=10)
 
-# Área de resultados
 resultado_text = tk.Text(frame, width=60, height=18)
 resultado_text.grid(row=7, column=0, columnspan=2)
 
-# Gráfico embebido
 fig = plt.Figure(figsize=(5, 4), dpi=100)
 canvas = FigureCanvasTkAgg(fig, master=frame)
 canvas.get_tk_widget().grid(row=0, column=2, rowspan=20, padx=10)
