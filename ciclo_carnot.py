@@ -34,9 +34,9 @@ def mostrar_error(mensaje):
 
 # Calcula presiones y volúmenes de cada estado
 def calcular_presiones_volumenes(n, gamma, T_hot, T_cold, V1, V2):
-    P1 = n * R * T_hot / V1
-    P2 = n * R * T_hot / V2
-    V3 = V2 * (T_hot / T_cold) ** (1 / (gamma - 1))
+    P1 = n * R * T_hot / V1   #ecuacion del gas ideal
+    P2 = n * R * T_hot / V2   
+    V3 = V2 * (T_hot / T_cold) ** (1 / (gamma - 1)) #Relacion adiabática  
     P3 = n * R * T_cold / V3
     V4 = V1 * (T_hot / T_cold) ** (1 / (gamma - 1))
     P4 = n * R * T_cold / V4
@@ -44,20 +44,24 @@ def calcular_presiones_volumenes(n, gamma, T_hot, T_cold, V1, V2):
 
 # Calcula trabajo, calor y energía interna
 def calcular_trabajo_Q_dU(n, gamma, T_hot, T_cold, V1, V2, V3, V4):
-    Cv = R / (gamma - 1)
+    Cv = R / (gamma - 1)  # Capacidad calorífica del gas (para procesos adiabáticos)
 
+    # Proceso 1→2 (expansión isoterma caliente)
     W_12 = n * R * T_hot * log(V2 / V1)
     Q_12 = W_12
     dU_12 = 0
 
+    # Proceso 2→3 (expansión adiabática)
     dU_23 = n * Cv * (T_cold - T_hot)
     W_23 = -dU_23
     Q_23 = 0
 
+    # Proceso 3→4 (compresion isoterma fría)
     W_34 = n * R * T_cold * log(V4 / V3)
     Q_34 = W_34
     dU_34 = 0
 
+    # Proceso 4→1 (compresión adiabática)
     dU_41 = n * Cv * (T_hot - T_cold)
     W_41 = -dU_41
     Q_41 = 0
@@ -89,25 +93,30 @@ def mostrar_resultados(W_12, Q_12, dU_12,
     resultado_text.insert(tk.END, f"Calor absorbido Q_in = {Q_in:.3f} J\n")
     resultado_text.insert(tk.END, f"Rendimiento = {eficiencia:.3f}\n")
 
-# Grafica el ciclo P-V
+# Se Dibuja el ciclo en un diagrama P-V
 def graficar_ciclo(P1, P2, V1, V2, V3, P3, V4, P4, gamma, n, T_hot, T_cold):
     fig.clear()
     ax = fig.add_subplot(111)
 
+    #Curvas suave para la isotermica caliente 1->2
     V_iso1 = np.linspace(V1, V2, 300)
     P_iso1 = n * R * T_hot / V_iso1
 
+    #Curvas suave para la adiabática 2->3
     C23 = P2 * (V2 ** gamma)
     V_adi23 = np.linspace(V2, V3, 300)
     P_adi23 = C23 / (V_adi23 ** gamma)
 
+    #Curvas suave para la isotermica fria 3->4
     V_iso3 = np.linspace(V3, V4, 300)
     P_iso3 = n * R * T_cold / V_iso3
 
+    #Curvas suave para la adiabática 4->1
     C41 = P4 * (V4 ** gamma)
     V_adi41 = np.linspace(V4, V1, 300)
     P_adi41 = C41 / (V_adi41 ** gamma)
 
+    #Dibuja todas las curvas y las etiquetas
     ax.plot(V_iso1, P_iso1, label="1→2 Isoterma caliente")
     ax.plot(V_adi23, P_adi23, label="2→3 Adiabática")
     ax.plot(V_iso3, P_iso3, label="3→4 Isoterma fría")
